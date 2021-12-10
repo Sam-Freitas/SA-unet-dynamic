@@ -12,7 +12,7 @@ from tensorflow.keras.models import load_model
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 import tensorflow as tf
 
-from SA_dynamic_unet import dynamic_unet_cnn, plot_figures, plot_acc_loss, data_generator
+from SA_dynamic_unet import dynamic_unet_cnn, plot_figures, plot_acc_loss, data_generator, load_first_image_get_size, get_num_layers_unet
 
 plt.ion() #turn ploting on
 
@@ -23,17 +23,15 @@ dataset = pd.read_csv('dataset.csv')
  
 total = len(dataset) #set variables
 test_split = 0.2
-height = 512
-width = 512
+# height = 512
+# width = 512
 channels = 1 
 batch_size = 64
 
-## 128 - 2
-## 256 - 3
-## 512 - 4
-## 1024 - 6 
+img_size = load_first_image_get_size(image_path,dataset)
+num_layers_of_unet, img_size = get_num_layers_unet(img_size)
+height = width = img_size
 
-num_layers_of_unet = 6
 starting_kernal_size = 16
 
 model = dynamic_unet_cnn(height,width,channels,
@@ -85,7 +83,7 @@ for image,mask in zip(X_test,y_test): #for loop for plotting images
     img = image.reshape((1,height,width,channels))
     pred_mask = new_model.predict(img)
 
-    plot_figures(image,pred_mask, count, orig_mask=mask)
+    plot_figures(image,pred_mask, count, orig_mask=mask, ext = 'training')
     count += 1
 
     if count>20:

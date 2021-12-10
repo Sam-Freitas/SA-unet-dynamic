@@ -144,7 +144,14 @@ def spatial_attention_block(input_features):
 
     return output
 
-def plot_figures(image,pred_mask,num, orig_mask = None): #function for plotting figures
+def plot_figures(image,pred_mask,num, orig_mask = None,ext = ''): #function for plotting figures
+
+    output_path = os.path.join(os.getcwd(),'output_images' + '_' + ext)
+
+    try:
+        os.mkdir(output_path)
+    except:
+        pass
 
     if orig_mask is not None:
         plt.figure(num,figsize=(12,12))
@@ -165,6 +172,10 @@ def plot_figures(image,pred_mask,num, orig_mask = None): #function for plotting 
         plt.subplot(122)
         plt.imshow(pred_mask.squeeze(),cmap='gray')
         plt.title('Predicted Mask')
+
+    output_name = os.path.join(output_path,str(num) + '.png')
+
+    plt.savefig(output_name)
 
 def plot_acc_loss(results): #plot accuracy and loss
     plt.plot(results.history['accuracy'])
@@ -218,3 +229,23 @@ def data_generator(dataset, image_path, mask_path, height, width, channels): #fu
         y_train[i] = mask_resized
 
     return X_train, y_train
+
+def load_first_image_get_size(img_path,dataset):
+
+    img = cv2.imread(os.path.join(img_path,dataset['images'][0]),0)
+
+    img_size = np.min(img.shape)
+
+    return img_size
+
+def get_num_layers_unet(img_size):
+
+    power_of_2 = round(np.log(img_size)/np.log(2)) # round to closest 2^x
+
+    new_img_size = 2**power_of_2 # get to closest power of 2 
+
+    # the last layer will be 16x16xDepth 
+    # can change to other sizes, inital unet used a 32x32xDepth 
+    num_layers = int(np.log(new_img_size/32)/np.log(2))
+
+    return num_layers, new_img_size
