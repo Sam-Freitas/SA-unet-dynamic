@@ -23,36 +23,41 @@ import shutil
 import glob
 from natsort import natsorted
 
-from SA_dynamic_unet import dynamic_unet_cnn, plot_figures, data_generator_for_testing
+from SA_dynamic_unet import dynamic_unet_cnn, plot_figures, data_generator_for_testing,load_first_image_get_size,get_num_layers_unet
 
 plt.ion() #turn ploting on
 
 dataset_path = os.getcwd()
 image_path = os.path.join(dataset_path, "testing")
-dataset = pd.read_csv('dataset.csv')
+# dataset = pd.read_csv('dataset.csv')
 
-total = len(dataset) #set variables
-test_split = 0.2
-height = 128
-width = 128
+# total = len(dataset) #set variables
+# test_split = 0.2
+# height = 128
+# width = 128
 channels = 1 
-batch_size = 32
+batch_size = 1
 
 ## 128 - 2
 ## 512 - 4
 ## 1024 - 6 ???????
 
-num_layers_of_unet = 2
+img_size = load_first_image_get_size(image_path)
+num_layers_of_unet, img_size = get_num_layers_unet(img_size)
+height = width = img_size
+
 starting_kernal_size = 16
 
 checkpoint_path = "training_1/cp.ckpt" 
 print('Loading in model from best checkpoint')
 new_model = dynamic_unet_cnn(height,width,channels,
-    num_layers = num_layers_of_unet,starting_filter_size = starting_kernal_size, use_dropout = False)
-new_model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+    num_layers = num_layers_of_unet,starting_filter_size = starting_kernal_size, use_dropout = True,
+    num_classes=2)
+optimizer_adam = tf.keras.optimizers.Adam(learning_rate=0.1)
+new_model.compile(optimizer=optimizer_adam, loss='CategoricalCrossentropy', metrics=['accuracy','MeanAbsoluteError'], run_eagerly = True)
 new_model.load_weights(checkpoint_path)
 
-images = data_generator_for_testing(image_path,height,width,channels, num_to_load = 3) #get test set
+images = data_generator_for_testing(image_path,height,width,channels) #get test set
 images = images / 255 #thresh y_test
 
 output_path = os.path.join(os.getcwd(),'output_images')
@@ -69,7 +74,7 @@ for image in images: #for loop for plotting images
     img = img.astype(np.float64)
     pred_mask = new_model.predict(img)
 
-    plot_figures(image,pred_mask, count, ext = 'testing')
+    plot_figures(image,pred_mask[:,:,:,-1], count, ext = 'testing')
     count += 1
 
     plt.close('all')

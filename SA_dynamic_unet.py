@@ -237,11 +237,16 @@ def data_generator(dataset, image_path, mask_path, height, width, channels): #fu
 
     return X_train, y_train
 
-def load_first_image_get_size(img_path,dataset):
+def load_first_image_get_size(img_path,dataset = None):
 
-    img = cv2.imread(os.path.join(img_path,dataset['images'][0]),0)
+    if dataset is not None:
+        img = cv2.imread(os.path.join(img_path,dataset['images'][0]),0)
 
-    img_size = np.min(img.shape)
+        img_size = np.min(img.shape)
+    else:
+        img_paths = natsorted(glob.glob(os.path.join(img_path,'*.png')))
+        img = cv2.imread(img_paths[0],0)
+        img_size = np.min(img.shape)
 
     return img_size
 
