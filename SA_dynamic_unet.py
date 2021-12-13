@@ -11,7 +11,7 @@ import sys
 import cv2
 import os
 
-def dynamic_unet_cnn(height,width,channels,num_layers = 4,starting_filter_size = 16, use_dropout = False, dropsize = 0.9, blocksize = 7): #Unet-cnn model 
+def dynamic_unet_cnn(height,width,channels,num_layers = 4,starting_filter_size = 16, use_dropout = False, dropsize = 0.9, blocksize = 7,num_classes = 1): #Unet-cnn model 
     inputs = Input((height, width, channels))
     s = inputs
 
@@ -126,7 +126,7 @@ def dynamic_unet_cnn(height,width,channels,num_layers = 4,starting_filter_size =
             conv_list[-1] = BatchNormalization()(conv_list[-1])
             conv_list[-1] = Activation('relu')(conv_list[-1])
 
-    outputs = Conv2D(1, (1, 1), activation='sigmoid') (conv_list[-1])
+    outputs = Conv2D(num_classes, (1, 1), activation='sigmoid') (conv_list[-1])
     model = Model(inputs=[inputs], outputs=[outputs])
     
     return(model)
@@ -215,7 +215,7 @@ def data_generator(dataset, image_path, mask_path, height, width, channels): #fu
         mask = cv2.imread(new_mask_path)[:,:,:1]
 
         img_resized = cv2.resize(image,(height,width))
-        mask_resized = cv2.resize(mask,(height,width))
+        mask_resized = cv2.resize(mask,(height,width),interpolation = cv2.INTER_NEAREST)
 
         # mask_resized = np.expand_dims(mask_resized,axis=2)
 
