@@ -23,36 +23,13 @@ import shutil
 import glob
 from natsort import natsorted
 
-from SA_dynamic_unet import dynamic_unet_cnn, plot_figures
+from SA_dynamic_unet import dynamic_unet_cnn, plot_figures, data_generator_for_testing
 
 plt.ion() #turn ploting on
 
 dataset_path = os.getcwd()
 image_path = os.path.join(dataset_path, "testing")
 dataset = pd.read_csv('dataset.csv')
-
-def data_generator(image_path, height, width,channels, num_to_load = None): #function for generating data
-
-    dataset = natsorted(glob.glob(os.path.join(image_path,'*.png')))
-
-    if num_to_load is not None:
-        dataset = random.sample(dataset,num_to_load)
-
-    images = np.zeros((len(dataset),height,width,channels), dtype = np.uint8) #initialize training sets (and testing sets)
-
-    sys.stdout.flush() #write everything to buffer ontime 
-
-    for i, this_img_path in enumerate(dataset):
-        
-        if channels == 1:
-            image = imread(this_img_path,0)
-        else:
-            image = imread(this_img_path)
-
-        img_resized = cv2.resize(image,(height,width))
-        images[i] = np.atleast_3d(img_resized)
-
-    return images
 
 total = len(dataset) #set variables
 test_split = 0.2
@@ -75,7 +52,7 @@ new_model = dynamic_unet_cnn(height,width,channels,
 new_model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
 new_model.load_weights(checkpoint_path)
 
-images = data_generator(image_path,height,width,channels, num_to_load = 3) #get test set
+images = data_generator_for_testing(image_path,height,width,channels, num_to_load = 3) #get test set
 images = images / 255 #thresh y_test
 
 output_path = os.path.join(os.getcwd(),'output_images')

@@ -4,9 +4,13 @@ from tensorflow.keras import backend as K
 from tensorflow.python.keras.engine import training
 from utils.DropBlock import DropBlock2D
 from tqdm import tqdm
+from natsort import natsorted
 import matplotlib.pyplot as plt
 import tensorflow as tf
 import numpy as np
+import shutil
+import random
+import glob
 import sys
 import cv2
 import os
@@ -144,7 +148,7 @@ def spatial_attention_block(input_features):
 
     return output
 
-def plot_figures(image,pred_mask,num, orig_mask = None,ext = ''): #function for plotting figures
+def plot_figures(image,pred_mask,num, orig_mask = None,ext = '', epoch = None): #function for plotting figures
 
     output_path = os.path.join(os.getcwd(),'output_images' + '_' + ext)
 
@@ -173,7 +177,10 @@ def plot_figures(image,pred_mask,num, orig_mask = None,ext = ''): #function for 
         plt.imshow(pred_mask.squeeze(),cmap='gray')
         plt.title('Predicted Mask')
 
-    output_name = os.path.join(output_path,str(num) + '.png')
+    if epoch is not None:
+        output_name = os.path.join(output_path,str(epoch) + '_' + str(num) + '.png')
+    else:
+        output_name = os.path.join(output_path,str(num) + '.png')
 
     plt.savefig(output_name)
 
@@ -249,3 +256,83 @@ def get_num_layers_unet(img_size):
     num_layers = int(np.log(new_img_size/32)/np.log(2))
 
     return num_layers, new_img_size
+
+def data_generator_for_testing(image_path, height = None, width = None,channels = None, num_to_load = None): #function for generating data
+
+    dataset = natsorted(glob.glob(os.path.join(image_path,'*.png')))
+
+    if num_to_load is not None:
+        dataset = random.sample(dataset,num_to_load)
+
+    if height is None or width is None or channels is None:
+        ex_img = cv2.imread(dataset[0])
+
+        height = ex_img.shape[0]
+        width = ex_img.shape[1]
+
+        if len(ex_img.shape) > 2:
+            max_img = np.max(ex_img,axis=-1)
+            mean_img = np.mean(ex_img,axis=-1)
+
+            if np.sum(mean_img - max_img) == 0:
+                channels = 1
+            else:
+                channels = 3
+        else:
+            channels = 1
+
+    images = np.zeros((len(dataset),height,width,channels), dtype = np.uint8) #initialize training sets (and testing sets)
+
+    sys.stdout.flush() #write everything to buffer ontime 
+
+    for i, this_img_path in enumerate(dataset):
+        
+        if channels == 1:
+            image = cv2.imread(this_img_path,0)
+        else:
+            image = cv2.imread(this_img_path)
+
+        img_resized = cv2.resize(image,(height,width))
+        images[i] = np.atleast_3d(img_resized)
+
+    return images
+
+class test_on_epoch_end(tf.keras.callbacks.Callback):
+    def on_epoch_end(self, epoch, logs=None):
+
+        curr_val_loss = logs['val_loss']
+        try:
+            val_loss_hist = self.model.history.history['val_loss']
+        except:
+            val_loss_hist = curr_val_loss + 1
+
+        if epoch == 0:
+            try:
+                os.mkdir(os.path.join(os.getcwd(), 'output_images_testing_during'))
+            except:
+                shutil.rmtree(os.path.join(os.getcwd(), 'output_images_testing_during'))
+                os.mkdir(os.path.join(os.getcwd(), 'output_images_testing_during'))
+
+        if curr_val_loss < np.min(val_loss_hist):
+
+            test_path = os.path.join(os.getcwd(), 'testing')
+
+            if os.path.isdir(test_path):
+
+                model_shape = self.model.input_shape[-3:]
+                test_height = model_shape[0]
+                test_width = model_shape[1]
+                test_depth = model_shape[2]
+                test_imgs = data_generator_for_testing(test_path, height=test_height,width=test_width,channels=test_depth)
+
+                for count, img in enumerate(test_imgs):
+
+                    img_reshape = np.expand_dims(img,axis = 0)
+
+                    in_img = img_reshape.astype(np.float64) / 255
+
+                    pred_mask = self.model.predict(in_img)
+
+                    plot_figures(img,pred_mask[:,:,:,-1], count, ext = 'testing_during', epoch = epoch)
+                    plt.close('all')
+
