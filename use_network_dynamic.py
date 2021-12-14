@@ -7,8 +7,6 @@ import shutil
 
 from SA_dynamic_unet import dynamic_unet_cnn, plot_figures, data_generator_for_testing,load_first_image_get_size,get_num_layers_unet
 
-plt.ion() #turn ploting on
-
 dataset_path = os.getcwd()
 image_path = os.path.join(dataset_path, "testing")
 channels = 1 
@@ -50,6 +48,3 @@ for image in images: #for loop for plotting images
     count += 1
 
     plt.close('all')
-
-plt.ioff()
-plt.show()

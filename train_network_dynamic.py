@@ -5,6 +5,7 @@ import cv2
 from cv2 import imread
 import os
 import sys
+from sklearn.utils import validation
 from tqdm import tqdm
 import random
 from sklearn.model_selection import train_test_split
@@ -12,7 +13,7 @@ from tensorflow.keras.models import load_model
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
 import tensorflow as tf
 
-from SA_dynamic_unet import dynamic_unet_cnn, plot_figures, plot_acc_loss, data_generator, load_first_image_get_size, get_num_layers_unet
+from SA_dynamic_unet import dynamic_unet_cnn, plot_figures, plot_acc_loss, data_generator, load_first_image_get_size, get_num_layers_unet, test_on_improved_val_loss
 
 plt.ion() #turn ploting on
 
@@ -26,7 +27,7 @@ test_split = 100/total
 # height = 512
 # width = 512
 channels = 1 
-batch_size = 4
+batch_size = 1
 
 img_size = load_first_image_get_size(image_path,dataset)
 num_layers_of_unet, img_size = get_num_layers_unet(img_size)
@@ -37,7 +38,7 @@ starting_kernal_size = 16
 model = dynamic_unet_cnn(height,width,channels,
     num_layers = num_layers_of_unet,starting_filter_size = starting_kernal_size, use_dropout = True,
     num_classes=2)
-optimizer_adam = tf.keras.optimizers.Adam(learning_rate=0.01)
+optimizer_adam = tf.keras.optimizers.Adam(learning_rate=0.1)
 model.compile(optimizer=optimizer_adam, loss='CategoricalCrossentropy', metrics=['accuracy','MeanAbsoluteError'], run_eagerly = True)
 # model.summary() #display model summary, Better to just view the model.png
 
@@ -64,9 +65,12 @@ checkpoint = ModelCheckpoint(filepath = checkpoint_path,monitor="val_loss",mode=
 earlystop = EarlyStopping(monitor = 'val_loss', 
     patience = 50, verbose = 1,restore_best_weights = True) #stop at best epoch
 reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.5,
-    patience=25, min_lr=0.001)
+    patience=25, min_lr=0.0001, verbose = 1)
+
+on_e_end = test_on_improved_val_loss()
+
 results = model.fit(X_train, y_train_cat, validation_split=0.1, batch_size=batch_size, 
-    epochs=250,callbacks=[earlystop, checkpoint,reduce_lr]) #fit model
+    epochs=250,callbacks=[earlystop, checkpoint,reduce_lr,on_e_end]) #fit model
 
 # plot_acc_loss(results) #plot the accuracy and loss functions
 
