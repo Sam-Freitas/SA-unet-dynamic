@@ -302,7 +302,7 @@ def data_generator_for_testing(image_path, height = None, width = None,channels 
 
     return images
 
-class test_on_epoch_end(tf.keras.callbacks.Callback):
+class test_on_improved_val_loss(tf.keras.callbacks.Callback):
     def on_epoch_end(self, epoch, logs=None):
 
         curr_val_loss = logs['val_loss']
@@ -338,6 +338,8 @@ class test_on_epoch_end(tf.keras.callbacks.Callback):
 
                     pred_mask = self.model.predict(in_img)
 
-                    plot_figures(img,pred_mask[:,:,:,-1], count, ext = 'testing_during', epoch = epoch)
+                    input_img = pred_mask[0,:,:,1] - pred_mask[0,:,:,0]
+
+                    plot_figures(img,input_img, count, ext = 'testing_during', epoch = epoch)
                     plt.close('all')
 
