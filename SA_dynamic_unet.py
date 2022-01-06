@@ -6,6 +6,7 @@ from utils.DropBlock import DropBlock2D
 from tqdm import tqdm
 from natsort import natsorted
 import matplotlib.pyplot as plt
+import albumentations as A
 import tensorflow as tf
 import numpy as np
 import shutil
@@ -199,7 +200,7 @@ def plot_acc_loss(results): #plot accuracy and loss
     plt.xlabel('epoch')
     plt.legend(['train', 'validation'], loc='upper left')
 
-def data_generator(dataset, image_path, mask_path, height, width, channels): #function for generating data
+def data_generator(dataset, image_path, mask_path, height, width, channels, create_more_data = None): #function for generating data
     print('Loading in training data')
     X_train = np.zeros((len(dataset),height,width,channels), dtype = np.uint8) #initialize training sets (and testing sets)
     y_train = np.zeros((len(dataset),height,width,1), dtype = np.uint8)
@@ -218,7 +219,7 @@ def data_generator(dataset, image_path, mask_path, height, width, channels): #fu
             image = cv2.imread(new_image_path,0)
             image = np.expand_dims(image,axis = -1)
         else:
-            image = cv2.imread(new_image_path)
+            image = cv2.imread(new_image_path)[:,:,::-1]
         mask = cv2.imread(new_mask_path)[:,:,:1]
 
         img_resized = cv2.resize(image,(height,width))
@@ -234,6 +235,33 @@ def data_generator(dataset, image_path, mask_path, height, width, channels): #fu
 
         X_train[i] = img_resized
         y_train[i] = mask_resized
+
+    if create_more_data is not None:
+
+        X_train_noise = X_train.astype(np.uint8)
+        y_train_noise = y_train.astype(np.uint8)
+
+        transform = A.Compose([
+            A.augmentations.transforms.HorizontalFlip(p=0.2),
+            A.augmentations.transforms.HorizontalFlip(p=0.2),
+            A.augmentations.transforms.RandomBrightnessContrast(p=0.2),
+            A.augmentations.transforms.ChannelShuffle(p=0.3),
+            A.augmentations.transforms.GaussNoise(p=0.3),
+            A.augmentations.transforms.RandomGridShuffle(p=0.5)
+            ])
+
+        print('Augmenting dataset for additional data')
+        for i in tqdm(range(len(dataset)),total=len(dataset)):
+
+            transformed = transform(image=X_train_noise[i], mask=y_train_noise[i])
+            X_train_noise[i] = transformed['image']
+            y_train_noise[i] = transformed['mask']
+
+        X_train_noise = X_train_noise.astype(np.float64)
+        y_train_noise = y_train_noise.astype(np.float64)
+
+        X_train = np.concatenate((X_train,X_train_noise),axis = 0)
+        y_train = np.concatenate((y_train,y_train_noise),axis = 0)
 
     return X_train, y_train
 
