@@ -237,16 +237,21 @@ def data_generator(dataset, image_path, mask_path, height, width, channels): #fu
 
     return X_train, y_train
 
-def load_first_image_get_size(img_path,dataset = None):
+def load_first_image_get_size(img_path,dataset = None, force_img_size = None):
 
-    if dataset is not None:
-        img = cv2.imread(os.path.join(img_path,dataset['images'][0]),0)
+    if force_img_size is not None:
 
-        img_size = np.min(img.shape)
+        img_size = force_img_size
+
     else:
-        img_paths = natsorted(glob.glob(os.path.join(img_path,'*.png')))
-        img = cv2.imread(img_paths[0],0)
-        img_size = np.min(img.shape)
+        if dataset is not None:
+            img = cv2.imread(os.path.join(img_path,dataset['images'][0]),0)
+
+            img_size = np.min(img.shape)
+        else:
+            img_paths = natsorted(glob.glob(os.path.join(img_path,'*.png')))
+            img = cv2.imread(img_paths[0],0)
+            img_size = np.min(img.shape)
 
     return img_size
 
@@ -265,6 +270,9 @@ def get_num_layers_unet(img_size):
 def data_generator_for_testing(image_path, height = None, width = None,channels = None, num_to_load = None): #function for generating data
 
     dataset = natsorted(glob.glob(os.path.join(image_path,'*.png')))
+
+    if dataset == []:
+        dataset = natsorted(glob.glob(os.path.join(image_path,'*.jpg')))
 
     if num_to_load is not None:
         dataset = random.sample(dataset,num_to_load)
@@ -338,8 +346,6 @@ class test_on_improved_val_loss(tf.keras.callbacks.Callback):
 
                     pred_mask = self.model.predict(in_img)
 
-                    input_img = pred_mask[0,:,:,1] - pred_mask[0,:,:,0]
-
-                    plot_figures(img,input_img, count, ext = 'testing_during', epoch = epoch)
+                    plot_figures(img,pred_mask[:,:,:,-1], count, ext = 'testing_during', epoch = epoch)
                     plt.close('all')
 

@@ -9,10 +9,10 @@ from SA_dynamic_unet import dynamic_unet_cnn, plot_figures, data_generator_for_t
 
 dataset_path = os.getcwd()
 image_path = os.path.join(dataset_path, "testing")
-channels = 1 
+channels = 3
 batch_size = 1
 
-img_size = load_first_image_get_size(image_path)
+img_size = load_first_image_get_size(image_path,force_img_size=128)
 num_layers_of_unet, img_size = get_num_layers_unet(img_size)
 height = width = img_size
 
