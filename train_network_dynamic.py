@@ -52,7 +52,7 @@ except:
 
 #######Training
 train, test = train_test_split(dataset, test_size = test_split, random_state = 50) #randomly split up the test and training datasets
-X_train, y_train = data_generator(train, image_path, mask_path, height, width, channels, create_more_data=True) #set up training data
+X_train, y_train = data_generator(train, image_path, mask_path, height, width, channels, create_more_data=True, data_multiplication = 3) #set up training data
 y_train = y_train / 255 #thresh y_training set
 y_train_cat = tf.keras.utils.to_categorical(y_train)
 X_train = X_train / 255
