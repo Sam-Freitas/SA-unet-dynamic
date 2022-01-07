@@ -17,7 +17,7 @@ import sys
 import cv2
 import os
 
-def dynamic_unet_cnn(height,width,channels,num_layers = 4,starting_filter_size = 16, use_dropout = False, dropsize = 0.9, blocksize = 7,num_classes = 1): #Unet-cnn model 
+def dynamic_unet_cnn(height,width,channels,num_layers = 4,starting_filter_size = 16, use_dropout = False, dropsize = 0.9, blocksize = 7,num_classes = 1,final_activation = 'sigmoid'): #Unet-cnn model 
     inputs = Input((height, width, channels))
     s = inputs
 
@@ -132,7 +132,7 @@ def dynamic_unet_cnn(height,width,channels,num_layers = 4,starting_filter_size =
             conv_list[-1] = BatchNormalization()(conv_list[-1])
             conv_list[-1] = Activation('relu')(conv_list[-1])
 
-    outputs = Conv2D(num_classes, (1, 1), activation='sigmoid') (conv_list[-1])
+    outputs = Conv2D(num_classes, (1, 1), activation=final_activation) (conv_list[-1])
     model = Model(inputs=[inputs], outputs=[outputs])
     
     return(model)
@@ -153,7 +153,7 @@ def spatial_attention_block(input_features):
 def dynamic_wnet_cnn(height,width,channels,num_layers = 4,starting_filter_size = 16, use_dropout = False, dropsize = 0.9, blocksize = 7,num_classes = 1):
 
     model1 = dynamic_unet_cnn(height,width,channels,
-        num_layers = num_layers, starting_filter_size = starting_filter_size, use_dropout = True, num_classes=num_classes)
+        num_layers = num_layers, starting_filter_size = starting_filter_size, use_dropout = True, num_classes=num_classes, final_activation=None)
 
     model2 = dynamic_unet_cnn(height,width,num_classes,
         num_layers = num_layers, starting_filter_size = starting_filter_size, use_dropout = True, num_classes = num_classes)

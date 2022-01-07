@@ -50,7 +50,7 @@ for image in images: #for loop for plotting images
 
     out_img = bwfilt[0]
 
-    plot_figures(image,out_img, count, ext = 'testing')
+    plot_figures(image,out_img, count, ext = 'output_images')
     count += 1
 
     plt.close('all')
