@@ -22,7 +22,7 @@ checkpoint_path = "training_1/cp.ckpt"
 print('Loading in model from best checkpoint')
 new_model = dynamic_unet_cnn(height,width,channels,
     num_layers = num_layers_of_unet,starting_filter_size = starting_kernal_size, use_dropout = True,
-    num_classes=2)
+    num_classes=1)
 optimizer_adam = tf.keras.optimizers.Adam(learning_rate=0.1)
 new_model.compile(optimizer=optimizer_adam, loss='CategoricalCrossentropy', metrics=['accuracy','MeanAbsoluteError'], run_eagerly = True)
 new_model.load_weights(checkpoint_path)

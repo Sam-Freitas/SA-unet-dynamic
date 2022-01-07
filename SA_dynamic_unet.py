@@ -149,6 +149,20 @@ def spatial_attention_block(input_features):
 
     return output
 
+def dynamic_wnet_cnn(height,width,channels,num_layers = 4,starting_filter_size = 16, use_dropout = False, dropsize = 0.9, blocksize = 7,num_classes = 1):
+
+    model1 = dynamic_unet_cnn(height,width,channels,
+        num_layers = num_layers, starting_filter_size = starting_filter_size, use_dropout = True, num_classes=num_classes)
+
+    model2 = dynamic_unet_cnn(height,width,1,
+        num_layers = num_layers, starting_filter_size = starting_filter_size, use_dropout = True, num_classes = 1)
+
+    Wnet_model = tf.keras.Sequential()
+    Wnet_model.add(model1)
+    Wnet_model.add(model2)
+
+    return Wnet_model
+
 def plot_figures(image,pred_mask,num, orig_mask = None,ext = '', epoch = None): #function for plotting figures
 
     output_path = os.path.join(os.getcwd(),'output_images' + '_' + ext)
