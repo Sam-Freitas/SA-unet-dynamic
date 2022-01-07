@@ -13,7 +13,8 @@ from tensorflow.keras.models import load_model
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
 import tensorflow as tf
 
-from SA_dynamic_unet import dynamic_unet_cnn, plot_figures, plot_acc_loss, data_generator, load_first_image_get_size, get_num_layers_unet, test_on_improved_val_loss,dynamic_wnet_cnn
+from SA_dynamic_unet import dynamic_unet_cnn, plot_figures, plot_acc_loss, data_generator 
+from SA_dynamic_unet import load_first_image_get_size, get_num_layers_unet, test_on_improved_val_loss,dynamic_wnet_cnn
 
 plt.ion() #turn ploting on
 

@@ -3,6 +3,7 @@ from tensorflow.keras.layers import Input, Dropout, Lambda, Conv2D, Conv2DTransp
 from tensorflow.keras import backend as K
 from tensorflow.python.keras.engine import training
 from utils.DropBlock import DropBlock2D
+from skimage import measure
 from tqdm import tqdm
 from natsort import natsorted
 import matplotlib.pyplot as plt
@@ -154,8 +155,8 @@ def dynamic_wnet_cnn(height,width,channels,num_layers = 4,starting_filter_size =
     model1 = dynamic_unet_cnn(height,width,channels,
         num_layers = num_layers, starting_filter_size = starting_filter_size, use_dropout = True, num_classes=num_classes)
 
-    model2 = dynamic_unet_cnn(height,width,1,
-        num_layers = num_layers, starting_filter_size = starting_filter_size, use_dropout = True, num_classes = 1)
+    model2 = dynamic_unet_cnn(height,width,num_classes,
+        num_layers = num_layers, starting_filter_size = starting_filter_size, use_dropout = True, num_classes = num_classes)
 
     Wnet_model = tf.keras.Sequential()
     Wnet_model.add(model1)
@@ -289,12 +290,17 @@ def load_first_image_get_size(img_path,dataset = None, force_img_size = None):
     else:
         if dataset is not None:
             img = cv2.imread(os.path.join(img_path,dataset['images'][0]),0)
-
             img_size = np.min(img.shape)
         else:
             img_paths = natsorted(glob.glob(os.path.join(img_path,'*.png')))
-            img = cv2.imread(img_paths[0],0)
-            img_size = np.min(img.shape)
+            if img_paths:
+                img = cv2.imread(img_paths[0],0)
+                img_size = np.min(img.shape)
+            else:
+                print('Could not find any Pngs using jpgs and tifs instead')
+                img_paths = natsorted(glob.glob(os.path.join(img_path,'*.png'))) + natsorted(glob.glob(os.path.join(img_path,'*.jpg'))) + natsorted(glob.glob(os.path.join(img_path,'*.tif')))
+                img = cv2.imread(img_paths[0],0)
+                img_size = np.min(img.shape)
 
     return img_size
 
@@ -310,12 +316,16 @@ def get_num_layers_unet(img_size):
 
     return num_layers, new_img_size
 
-def data_generator_for_testing(image_path, height = None, width = None,channels = None, num_to_load = None): #function for generating data
+def data_generator_for_testing(image_path, height = None, width = None,channels = None, num_to_load = None, recursive = False, spcific_file_ext = 'png'): #function for generating data
 
-    dataset = natsorted(glob.glob(os.path.join(image_path,'*.png')))
-
-    if dataset == []:
-        dataset = natsorted(glob.glob(os.path.join(image_path,'*.jpg')))
+    if recursive:
+        dataset = natsorted(glob.glob(os.path.join(image_path,'**/*.' + spcific_file_ext),recursive = True))
+    else:
+        dataset = natsorted(glob.glob(os.path.join(image_path,'*.png')))
+        if dataset == []:
+            dataset = natsorted(glob.glob(os.path.join(image_path,'*.jpg'))) 
+            if dataset == []:
+                dataset = natsorted(glob.glob(os.path.join(image_path,'*.tif')))
 
     if num_to_load is not None:
         dataset = random.sample(dataset,num_to_load)
@@ -392,3 +402,22 @@ class test_on_improved_val_loss(tf.keras.callbacks.Callback):
                     plot_figures(img,pred_mask[:,:,:,-1], count, ext = 'testing_during', epoch = epoch)
                     plt.close('all')
 
+def bwareafilt(mask, n=1, area_range=(0, np.inf)):
+
+
+    """Extract objects from binary image by size """
+    # For openCV > 3.0 this can be changed to: areas_num, labels = cv2.connectedComponents(mask.astype(np.uint8))
+    labels = measure.label(mask.astype('uint8'), background=0)
+    area_idx = np.arange(1, np.max(labels) + 1)
+    areas = np.array([np.sum(labels == i) for i in area_idx])
+    inside_range_idx = np.logical_and(areas >= area_range[0], areas <= area_range[1])
+    area_idx = area_idx[inside_range_idx]
+    areas = areas[inside_range_idx]
+    keep_idx = area_idx[np.argsort(areas)[::-1][0:n]]
+    kept_areas = areas[np.argsort(areas)[::-1][0:n]]
+    if np.size(kept_areas) == 0:
+        kept_areas = np.array([0])
+    if n == 1:
+        kept_areas = kept_areas[0]
+    kept_mask = np.isin(labels, keep_idx)
+    return kept_mask, kept_areas
