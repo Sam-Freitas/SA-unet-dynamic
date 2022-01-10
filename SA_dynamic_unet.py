@@ -290,8 +290,8 @@ def data_generator(dataset, image_path, mask_path, height, width, channels, crea
             y_train = y_train[shuffle_idx]
 
     if normalize:
-
-        for count,each_slice in enumerate(X_train):
+        print('Normalizing input data to 3*std per rgb')
+        for count in tqdm(range(len(X_train)),total=len(X_train)):
             X_train[count] = normalize_each_RGB_subset(X_train[count])
             y_train[count] = y_train[count] / 255
 
@@ -374,6 +374,9 @@ def data_generator_for_testing(image_path, height = None, width = None,channels 
         else:
             image = cv2.imread(this_img_path)
 
+        if normalize:
+            image = normalize_each_RGB_subset(image)
+
         img_resized = cv2.resize(image,(height,width))
         images[i] = np.atleast_3d(img_resized)
 
@@ -405,13 +408,13 @@ class test_on_improved_val_loss(tf.keras.callbacks.Callback):
                 test_height = model_shape[0]
                 test_width = model_shape[1]
                 test_depth = model_shape[2]
-                test_imgs = data_generator_for_testing(test_path, height=test_height,width=test_width,channels=test_depth)
+                test_imgs = data_generator_for_testing(test_path, height=test_height,width=test_width,channels=test_depth,normalize=True)
 
                 for count, img in enumerate(test_imgs):
 
                     img_reshape = np.expand_dims(img,axis = 0)
 
-                    in_img = img_reshape.astype(np.float64) / 255
+                    in_img = img_reshape.astype(np.float64)
 
                     pred_mask = self.model.predict(in_img)
 
