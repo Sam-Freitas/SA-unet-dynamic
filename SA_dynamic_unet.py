@@ -363,7 +363,7 @@ def data_generator_for_testing(image_path, height = None, width = None,channels 
         else:
             channels = 1
 
-    images = np.zeros((len(dataset),height,width,channels), dtype = np.uint8) #initialize training sets (and testing sets)
+    images = np.zeros((len(dataset),height,width,channels)) #initialize training sets (and testing sets)
 
     sys.stdout.flush() #write everything to buffer ontime 
 
