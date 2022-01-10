@@ -9,8 +9,8 @@ from SA_dynamic_unet import dynamic_unet_cnn, plot_figures, data_generator_for_t
 from SA_dynamic_unet import bwareafilt
 
 dataset_path = os.getcwd()
-# image_path = os.path.join(dataset_path, "testing")
-image_path = os.path.join(r"Y:\Users\Raul Castro\Microscopes\Leica Fluorescence Stereoscope\GFP Marker New set 1")
+image_path = os.path.join(dataset_path, "test")
+# image_path = os.path.join('testing')
 channels = 3
 batch_size = 1
 
@@ -22,6 +22,7 @@ starting_kernal_size = 16
 
 checkpoint_path = "training_1/cp.ckpt" 
 print('Loading in model from best checkpoint')
+
 new_model = dynamic_wnet_cnn(height,width,channels,
     num_layers = num_layers_of_unet,starting_filter_size = starting_kernal_size, use_dropout = True,
     num_classes=1)
@@ -29,7 +30,7 @@ optimizer_adam = tf.keras.optimizers.Adam(learning_rate=0.1)
 new_model.compile(optimizer=optimizer_adam, loss='BinaryCrossentropy', metrics=['accuracy','MeanAbsoluteError'], run_eagerly = True)
 new_model.load_weights(checkpoint_path)
 
-images = data_generator_for_testing(image_path,height,width,channels,recursive = True,spcific_file_ext = 'tif') #get test set
+images = data_generator_for_testing(image_path,height,width,channels,recursive = True,spcific_file_ext = 'jpg') #get test set
 images = images / 255 #thresh y_test
 
 output_path = os.path.join(os.getcwd(),'output_images')
@@ -50,7 +51,7 @@ for image in images: #for loop for plotting images
 
     out_img = bwfilt[0]
 
-    plot_figures(image,out_img, count, ext = 'output_images')
+    plot_figures(image,out_img, count)
     count += 1
 
     plt.close('all')

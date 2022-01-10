@@ -166,7 +166,10 @@ def dynamic_wnet_cnn(height,width,channels,num_layers = 4,starting_filter_size =
 
 def plot_figures(image,pred_mask,num, orig_mask = None,ext = '', epoch = None): #function for plotting figures
 
-    output_path = os.path.join(os.getcwd(),'output_images' + '_' + ext)
+    if ext != '':
+        output_path = os.path.join(os.getcwd(),'output_images' + '_' + ext)
+    else:
+        output_path = os.path.join(os.getcwd(),'output_images')
 
     try:
         os.mkdir(output_path)
