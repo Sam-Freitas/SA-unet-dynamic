@@ -282,6 +282,12 @@ def data_generator(dataset, image_path, mask_path, height, width, channels, crea
             X_train = np.concatenate((X_train,X_train_noise),axis = 0)
             y_train = np.concatenate((y_train,y_train_noise),axis = 0)
 
+            shuffle_idx = np.arange(len(y_train))
+            np.random.shuffle(shuffle_idx)
+
+            X_train = X_train[shuffle_idx]
+            y_train = y_train[shuffle_idx]
+
     return X_train, y_train
 
 def load_first_image_get_size(img_path,dataset = None, force_img_size = None):
