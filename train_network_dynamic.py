@@ -28,7 +28,7 @@ test_split = 5/total
 # height = 512
 # width = 512
 channels = 3
-batch_size = 8
+batch_size = 12
 
 img_size = load_first_image_get_size(image_path,dataset,force_img_size=128)
 num_layers_of_unet, img_size = get_num_layers_unet(img_size)
