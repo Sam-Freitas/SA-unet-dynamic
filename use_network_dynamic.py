@@ -20,25 +20,16 @@ height = width = img_size
 
 starting_kernal_size = 16
 
-checkpoint_path = "training_1/cp.ckpt" 
+checkpoint_path = "training_unet/cp.ckpt" 
 print('Loading in model from best checkpoint')
 
-new_model = dynamic_wnet_cnn(height,width,channels,
-    num_layers = num_layers_of_unet,starting_filter_size = starting_kernal_size, use_dropout = True,
-    num_classes=1)
+new_model = dynamic_wnet_cnn(height,width,channels,num_layers = num_layers_of_unet)
 optimizer_adam = tf.keras.optimizers.Adam(learning_rate=0.1)
 new_model.compile(optimizer=optimizer_adam, loss='BinaryCrossentropy', metrics=['accuracy','MeanAbsoluteError'], run_eagerly = True)
 new_model.load_weights(checkpoint_path)
 
-images = data_generator_for_testing(image_path,height,width,channels,recursive = True,spcific_file_ext = 'jpg') #get test set
-images = images / 255 #thresh y_test
-
-output_path = os.path.join(os.getcwd(),'output_images')
-try:
-    os.mkdir(output_path)
-except:
-    shutil.rmtree(output_path)
-    os.mkdir(output_path)
+images = data_generator_for_testing(image_path,height,width,channels,recursive = True,spcific_file_ext = 'jpg', normalize = True) #get test set
+# images = images / 255 #thresh y_test
 
 count = 1 #counter for figures in for loops
 for image in images: #for loop for plotting images
@@ -47,11 +38,11 @@ for image in images: #for loop for plotting images
     img = img.astype(np.float64)
     pred_mask = new_model.predict(img)
 
-    bwfilt = bwareafilt((pred_mask[:,:,:,-1]>0.5)*1,n=5)
+    # bwfilt = bwareafilt((pred_mask[:,:,:,-1]>0.5)*1,n=5)
 
-    out_img = bwfilt[0]
+    # out_img = bwfilt[0]
 
-    plot_figures(image,out_img, count)
+    plot_figures(image,pred_mask[:,:,:,-1], count)
     count += 1
 
     plt.close('all')

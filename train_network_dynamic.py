@@ -24,11 +24,9 @@ mask_path = os.path.join(dataset_path,"masks")
 dataset = pd.read_csv('dataset.csv')
 
 total = len(dataset) #set variables
-test_split = 5/total
-# height = 512
-# width = 512
+test_split = 10/total
 channels = 3
-batch_size = 12
+batch_size = 24
 
 img_size = load_first_image_get_size(image_path,dataset,force_img_size=128)
 num_layers_of_unet, img_size = get_num_layers_unet(img_size)
@@ -43,22 +41,22 @@ X_train, y_train = data_generator(train, image_path, mask_path, height, width, c
 
 starting_kernal_size = 16
 
-Wnet_model = dynamic_wnet_cnn(height,width,channels,
+model = dynamic_unet_cnn(height,width,channels,
         num_layers = num_layers_of_unet, starting_filter_size = starting_kernal_size, use_dropout = True, num_classes=1)
 
 optimizer_adam = tf.keras.optimizers.Adam(learning_rate=0.1)
-Wnet_model.compile(optimizer=optimizer_adam, loss='BinaryCrossentropy', metrics=['accuracy','MeanAbsoluteError'], run_eagerly = True)
+model.compile(optimizer=optimizer_adam, loss='BinaryCrossentropy', metrics=['accuracy','MeanAbsoluteError'], run_eagerly = True)
 # model.summary() #display model summary, Better to just view the model.png
 
 try:
     tf.keras.utils.plot_model(
-        Wnet_model, to_file='model.png', show_shapes=True, show_dtype=False,
+        model, to_file='model.png', show_shapes=True, show_dtype=False,
         show_layer_names=True, rankdir='TB', expand_nested=False, dpi=96)
 except:
     print("Exporting model to png failed")
     print("Necessary packages: pydot (pip) and graphviz (brew)")
 
-checkpoint_path = "training_1/cp.ckpt" 
+checkpoint_path = "training_unet/cp.ckpt" 
 checkpoint_dir = os.path.dirname(checkpoint_path)
 
 checkpoint = ModelCheckpoint(filepath = checkpoint_path,monitor="val_loss",mode="min",
@@ -70,19 +68,19 @@ reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.5,
 
 on_e_end = test_on_improved_val_loss()
 
-results = Wnet_model.fit(X_train, y_train, validation_split=0.1, batch_size=batch_size, 
+results = model.fit(X_train, y_train, validation_split=0.25, batch_size=batch_size, 
     epochs=250,callbacks=[earlystop, checkpoint,reduce_lr,on_e_end]) #fit model
 
 # plot_acc_loss(results) #plot the accuracy and loss functions
 
-del Wnet_model
+del model
 del X_train
 del y_train
 
 print('Loading in model from best checkpoint')
-new_model = dynamic_wnet_cnn(height,width,channels,
+new_model = dynamic_unet_cnn(height,width,channels,
     num_layers = num_layers_of_unet,starting_filter_size = starting_kernal_size, use_dropout = False,num_classes=1)
-new_model.compile(optimizer=optimizer_adam, loss='CategoricalCrossentropy', metrics=['accuracy','MeanAbsoluteError'], run_eagerly = True)
+new_model.compile(optimizer=optimizer_adam, loss='BinaryCrossentropy', metrics=['accuracy','MeanAbsoluteError'], run_eagerly = True)
 new_model.load_weights(checkpoint_path)
 
 X_test,y_test = data_generator(test,image_path, mask_path,height,width,channels) #get test set
