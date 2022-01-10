@@ -1,3 +1,4 @@
+import enum
 from tensorflow.keras.models import Model 
 from tensorflow.keras.layers import Input, Dropout, Lambda, Conv2D, Conv2DTranspose, MaxPooling2D, concatenate, BatchNormalization, Activation
 from tensorflow.keras import backend as K
@@ -218,7 +219,7 @@ def plot_acc_loss(results): #plot accuracy and loss
     plt.xlabel('epoch')
     plt.legend(['train', 'validation'], loc='upper left')
 
-def data_generator(dataset, image_path, mask_path, height, width, channels, create_more_data = None, data_multiplication = 2): #function for generating data
+def data_generator(dataset, image_path, mask_path, height, width, channels, create_more_data = None, data_multiplication = 2, normalize = False): #function for generating data
     print('Loading in training data')
     X_train = np.zeros((len(dataset),height,width,channels), dtype = np.uint8) #initialize training sets (and testing sets)
     y_train = np.zeros((len(dataset),height,width,1), dtype = np.uint8)
@@ -288,6 +289,12 @@ def data_generator(dataset, image_path, mask_path, height, width, channels, crea
             X_train = X_train[shuffle_idx]
             y_train = y_train[shuffle_idx]
 
+    if normalize:
+
+        for count,each_slice in enumerate(X_train):
+            X_train[count] = normalize_each_RGB_subset(X_train[count])
+            y_train[count] = y_train[count] / 255
+
     return X_train, y_train
 
 def load_first_image_get_size(img_path,dataset = None, force_img_size = None):
@@ -325,7 +332,7 @@ def get_num_layers_unet(img_size):
 
     return num_layers, new_img_size
 
-def data_generator_for_testing(image_path, height = None, width = None,channels = None, num_to_load = None, recursive = False, spcific_file_ext = 'png'): #function for generating data
+def data_generator_for_testing(image_path, height = None, width = None,channels = None, num_to_load = None, recursive = False, spcific_file_ext = 'png',normalize = False): #function for generating data
 
     if recursive:
         dataset = natsorted(glob.glob(os.path.join(image_path,'**/*.' + spcific_file_ext),recursive = True))
@@ -430,3 +437,48 @@ def bwareafilt(mask, n=1, area_range=(0, np.inf)):
         kept_areas = kept_areas[0]
     kept_mask = np.isin(labels, keep_idx)
     return kept_mask, kept_areas
+
+def normalize_each_RGB_subset(img):
+
+    img_shape = img.shape
+
+    output = np.zeros(shape = img.shape)
+
+    # if RGB
+    if len(img_shape) > 2:
+        for i in range(img_shape[-1]):
+
+            this_slice = img[:,:,i]
+
+            nonzero_vals = this_slice[np.nonzero(this_slice)]
+
+            mean_val = np.mean(nonzero_vals)
+            std_val = np.std(nonzero_vals)
+
+            # define normalized value as 95% confidence interval per color
+            if (mean_val + 3*std_val) > 255:
+                norm_value = 255
+            else:
+                norm_value = (mean_val + 3*std_val)
+
+            norm_slice = img[:,:,i] / norm_value
+            norm_slice = np.clip(norm_slice,0,1)
+
+            output[:,:,i] = norm_slice
+    # if grayscale
+    else:
+        mean_val = np.mean(img)
+        std_val = np.std(img)
+
+        # define normalized value as 95% confidence interval per color
+        if (mean_val + 2*std_val) > 255:
+            norm_value = 255
+        else:
+            norm_value = (mean_val + 2*std_val)
+
+        norm_slice = img / norm_value
+        norm_slice = np.clip(norm_slice,0,1)
+
+        output = norm_slice
+
+    return output
