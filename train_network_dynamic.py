@@ -26,7 +26,7 @@ dataset = pd.read_csv('dataset.csv')
 total = len(dataset) #set variables
 test_split = 10/total
 channels = 3
-batch_size = 24
+batch_size = 128
 
 img_size = load_first_image_get_size(image_path,dataset,force_img_size=128)
 num_layers_of_unet, img_size = get_num_layers_unet(img_size)
@@ -62,14 +62,14 @@ checkpoint_dir = os.path.dirname(checkpoint_path)
 checkpoint = ModelCheckpoint(filepath = checkpoint_path,monitor="val_loss",mode="min",
     save_best_only = True,verbose=1,save_weights_only=True) #use checkpoint instead of sequential() module
 earlystop = EarlyStopping(monitor = 'val_loss', 
-    patience = 50, verbose = 1,restore_best_weights = True) #stop at best epoch
+    patience = 200, verbose = 1,restore_best_weights = True) #stop at best epoch
 reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.5,
-    patience=10, min_lr=0.0001, verbose = 1)
+    patience=25, min_lr=0.0001, verbose = 1)
 
 on_e_end = test_on_improved_val_loss()
 
 results = model.fit(X_train, y_train, validation_split=0.25, batch_size=batch_size, 
-    epochs=250,callbacks=[earlystop, checkpoint,reduce_lr,on_e_end]) #fit model
+    epochs=1000,callbacks=[earlystop, checkpoint,reduce_lr,on_e_end]) #fit model
 
 # plot_acc_loss(results) #plot the accuracy and loss functions
 
