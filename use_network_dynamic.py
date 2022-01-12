@@ -9,7 +9,7 @@ from SA_dynamic_unet import dynamic_unet_cnn, plot_figures, data_generator_for_t
 from SA_dynamic_unet import bwareafilt
 
 dataset_path = os.getcwd()
-image_path = os.path.join(dataset_path, "images")
+image_path = os.path.join(dataset_path, "test")
 # image_path = os.path.join('testing')
 channels = 3
 batch_size = 1
@@ -42,9 +42,9 @@ for image in images: #for loop for plotting images
 
     # out_img = bwfilt[0]
 
-    out_img = (pred_mask[:,:,:,-1]>0.1)*1
+    out_img = pred_mask[:,:,:,-1]
 
-    plot_figures(image,out_img, count,ext='on_training_data')
+    plot_figures(image,out_img, count)
     count += 1
 
     plt.close('all')

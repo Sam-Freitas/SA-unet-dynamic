@@ -18,6 +18,8 @@ from SA_dynamic_unet import load_first_image_get_size, get_num_layers_unet, test
 
 plt.ion() #turn ploting on
 
+random.seed(50)
+
 dataset_path = os.getcwd()
 image_path = os.path.join(dataset_path, "images")
 mask_path = os.path.join(dataset_path,"masks")
@@ -28,7 +30,7 @@ test_split = 10/total
 channels = 3
 batch_size = 128
 
-img_size = load_first_image_get_size(image_path,dataset,force_img_size=128)
+img_size = load_first_image_get_size(image_path,dataset,force_img_size=256)
 num_layers_of_unet, img_size = get_num_layers_unet(img_size)
 height = width = img_size
 
@@ -38,6 +40,12 @@ X_train, y_train = data_generator(train, image_path, mask_path, height, width, c
 # y_train = y_train / 255 #thresh y_training set
 # # y_train_cat = tf.keras.utils.to_categorical(y_train)
 # X_train = X_train / 255
+
+X_val = X_train[0:250]
+y_val = y_train[0:250]
+
+X_train = X_train[250::]
+y_train = y_train[250::]
 
 starting_kernal_size = 16
 
@@ -62,14 +70,17 @@ checkpoint_dir = os.path.dirname(checkpoint_path)
 checkpoint = ModelCheckpoint(filepath = checkpoint_path,monitor="val_loss",mode="min",
     save_best_only = True,verbose=1,save_weights_only=True) #use checkpoint instead of sequential() module
 earlystop = EarlyStopping(monitor = 'val_loss', 
-    patience = 200, verbose = 1,restore_best_weights = True) #stop at best epoch
+    patience = 100, verbose = 1,restore_best_weights = True) #stop at best epoch
 reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.5,
     patience=25, min_lr=0.0001, verbose = 1)
 
 on_e_end = test_on_improved_val_loss()
 
-results = model.fit(X_train, y_train, validation_split=0.25, batch_size=batch_size, 
-    epochs=1000,callbacks=[earlystop, checkpoint,reduce_lr,on_e_end]) #fit model
+# results = model.fit(X_train, y_train, validation_split=0.25, batch_size=batch_size, 
+#     epochs=1000,callbacks=[earlystop, checkpoint,reduce_lr,on_e_end]) #fit model
+
+results = model.fit(X_train, y_train, validation_data=(X_val,y_val), batch_size=batch_size, 
+    epochs=500,callbacks=[earlystop, checkpoint,reduce_lr,on_e_end]) #fit model
 
 # plot_acc_loss(results) #plot the accuracy and loss functions
 
@@ -83,12 +94,12 @@ new_model = dynamic_unet_cnn(height,width,channels,
 new_model.compile(optimizer=optimizer_adam, loss='BinaryCrossentropy', metrics=['accuracy','MeanAbsoluteError'], run_eagerly = True)
 new_model.load_weights(checkpoint_path)
 
-X_test,y_test = data_generator(test,image_path, mask_path,height,width,channels) #get test set
-y_test = y_test / 255 #thresh y_test
-# y_test_cat = tf.keras.utils.to_categorical(y_test)
-X_test = X_test / 255
-eval_result = new_model.evaluate(X_test,y_test,steps=1) #get evaluation results
-print("Restored model, accuracy: {:5.2f}%".format(100 * eval_result[1]))
+X_test,y_test = data_generator(test, image_path, mask_path, height, width, channels, normalize = True)
+# y_test = y_test / 255 #thresh y_test
+# # y_test_cat = tf.keras.utils.to_categorical(y_test)
+# X_test = X_test / 255
+eval_result = new_model.evaluate(X_test,y_test,steps=1,return_dict = True) #get evaluation results
+print(eval_result)
 
 count = 1 #counter for figures in for loops
 for image,mask in zip(X_test,y_test): #for loop for plotting images

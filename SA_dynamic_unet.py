@@ -219,7 +219,7 @@ def plot_acc_loss(results): #plot accuracy and loss
     plt.xlabel('epoch')
     plt.legend(['train', 'validation'], loc='upper left')
 
-def data_generator(dataset, image_path, mask_path, height, width, channels, create_more_data = None, data_multiplication = 2, normalize = False): #function for generating data
+def data_generator(dataset, image_path, mask_path, height, width, channels, create_more_data = None, data_multiplication = 2, normalize = False,shuffle_data = False): #function for generating data
     print('Loading in training data')
     X_train = np.zeros((len(dataset),height,width,channels), dtype = np.uint8) #initialize training sets (and testing sets)
     y_train = np.zeros((len(dataset),height,width,1), dtype = np.uint8)
@@ -283,11 +283,12 @@ def data_generator(dataset, image_path, mask_path, height, width, channels, crea
             X_train = np.concatenate((X_train,X_train_noise),axis = 0)
             y_train = np.concatenate((y_train,y_train_noise),axis = 0)
 
-            shuffle_idx = np.arange(len(y_train))
-            np.random.shuffle(shuffle_idx)
+            if shuffle_data:
+                shuffle_idx = np.arange(len(y_train))
+                np.random.shuffle(shuffle_idx)
 
-            X_train = X_train[shuffle_idx]
-            y_train = y_train[shuffle_idx]
+                X_train = X_train[shuffle_idx]
+                y_train = y_train[shuffle_idx]
 
     if normalize:
         print('Normalizing input data to 3*std per rgb')
