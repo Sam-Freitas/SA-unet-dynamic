@@ -367,7 +367,7 @@ def data_generator_for_testing(image_path, height = None, width = None,channels 
         else:
             channels = 1
 
-    images = np.zeros((len(dataset),height,width,channels)) #initialize training sets (and testing sets)
+    images = [] #initialize training sets (and testing sets)
 
     sys.stdout.flush() #write everything to buffer ontime 
 
@@ -385,7 +385,7 @@ def data_generator_for_testing(image_path, height = None, width = None,channels 
             image = normalize_each_RGB_subset(image)
 
         img_resized = cv2.resize(image,(height,width))
-        images[i] = np.atleast_3d(img_resized)
+        images.append(np.atleast_3d(img_resized))
 
     return images
 
@@ -425,8 +425,15 @@ class test_on_improved_val_loss(tf.keras.callbacks.Callback):
 
                     pred_mask = self.model.predict(in_img)
 
-                    plot_figures(img,pred_mask[:,:,:,-1], count, ext = 'testing_during', epoch = epoch, sup_title = curr_val_loss)
-                    plt.close('all')
+                    if count == 0:
+                        concat_in_imgs = in_img.squeeze()
+                        concat_out_imgs = pred_mask[:,:,:,-1].squeeze()
+                    else:
+                        concat_in_imgs = cv2.vconcat([concat_in_imgs,in_img.squeeze()])
+                        concat_out_imgs = cv2.vconcat([concat_out_imgs,pred_mask[:,:,:,-1].squeeze()])
+
+                plot_figures(concat_in_imgs,concat_out_imgs, count, ext = 'testing_during', epoch = epoch, sup_title = curr_val_loss)
+                plt.close('all')
 
 def bwareafilt(mask, n=1, area_range=(0, np.inf)):
 
