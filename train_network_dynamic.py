@@ -19,6 +19,7 @@ from SA_dynamic_unet import load_first_image_get_size, get_num_layers_unet, test
 plt.ion() #turn ploting on
 
 random.seed(50)
+np.random.seed(50)
 
 dataset_path = os.getcwd()
 image_path = os.path.join(dataset_path, "images")
@@ -28,7 +29,7 @@ dataset = pd.read_csv('dataset.csv')
 total = len(dataset) #set variables
 test_split = 10/total
 channels = 3
-batch_size = 128
+batch_size = 24
 
 img_size = load_first_image_get_size(image_path,dataset,force_img_size=256)
 num_layers_of_unet, img_size = get_num_layers_unet(img_size)
@@ -47,13 +48,21 @@ y_val = y_train[0:250]
 X_train = X_train[250::]
 y_train = y_train[250::]
 
+shuffled_idx = np.arange(X_train.shape[0])
+np.random.shuffle(shuffled_idx)
+
+X_train = X_train[shuffled_idx]
+y_train = y_train[shuffled_idx]
+
 starting_kernal_size = 16
 
 model = dynamic_unet_cnn(height,width,channels,
         num_layers = num_layers_of_unet, starting_filter_size = starting_kernal_size, use_dropout = True, num_classes=1)
 
 optimizer_adam = tf.keras.optimizers.Adam(learning_rate=0.1)
-model.compile(optimizer=optimizer_adam, loss='BinaryCrossentropy', metrics=['accuracy','MeanAbsoluteError'], run_eagerly = True)
+AUC_ROC = tf.keras.metrics.AUC(curve='ROC',name='AUC_ROC')
+AUC_PR = tf.keras.metrics.AUC(curve='PR',name='AUC_PR')
+model.compile(optimizer=optimizer_adam, loss='BinaryCrossentropy', metrics=[AUC_ROC,AUC_PR], run_eagerly = True)
 # model.summary() #display model summary, Better to just view the model.png
 
 try:
@@ -69,7 +78,7 @@ checkpoint_dir = os.path.dirname(checkpoint_path)
 
 checkpoint = ModelCheckpoint(filepath = checkpoint_path,monitor="val_loss",mode="min",
     save_best_only = True,verbose=1,save_weights_only=True) #use checkpoint instead of sequential() module
-earlystop = EarlyStopping(monitor = 'val_loss', 
+earlystop = EarlyStopping(monitor = 'val_loss', min_delta=0.00001,
     patience = 100, verbose = 1,restore_best_weights = True) #stop at best epoch
 reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.5,
     patience=25, min_lr=0.0001, verbose = 1)

@@ -165,7 +165,7 @@ def dynamic_wnet_cnn(height,width,channels,num_layers = 4,starting_filter_size =
 
     return Wnet_model
 
-def plot_figures(image,pred_mask,num, orig_mask = None,ext = '', epoch = None): #function for plotting figures
+def plot_figures(image,pred_mask,num, orig_mask = None,ext = '', epoch = None, sup_title = None): #function for plotting figures
 
     if ext != '':
         output_path = os.path.join(os.getcwd(),'output_images' + '_' + ext)
@@ -201,6 +201,9 @@ def plot_figures(image,pred_mask,num, orig_mask = None,ext = '', epoch = None): 
         output_name = os.path.join(output_path,str(epoch) + '_' + str(num) + '.png')
     else:
         output_name = os.path.join(output_path,str(num) + '.png')
+
+    if sup_title is not None:
+        plt.suptitle(sup_title)
 
     plt.savefig(output_name)
 
@@ -422,7 +425,7 @@ class test_on_improved_val_loss(tf.keras.callbacks.Callback):
 
                     pred_mask = self.model.predict(in_img)
 
-                    plot_figures(img,pred_mask[:,:,:,-1], count, ext = 'testing_during', epoch = epoch)
+                    plot_figures(img,pred_mask[:,:,:,-1], count, ext = 'testing_during', epoch = epoch, sup_title = curr_val_loss)
                     plt.close('all')
 
 def bwareafilt(mask, n=1, area_range=(0, np.inf)):
@@ -489,3 +492,22 @@ def normalize_each_RGB_subset(img):
         output = norm_slice
 
     return output
+
+def insert_text_into_img(img,text):
+
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    org = (5,30)
+    fontScale = 1
+    color_white = (1, 1, 1)
+    color_black = (0,0,0)
+
+    thickness_black = 3
+    thickness_white = 1
+
+    image_black = cv2.putText(img, text, org, font, 
+                   fontScale, color_black, thickness_black, cv2.LINE_AA)
+
+    out_img = cv2.putText(image_black, text, org, font, 
+                   fontScale, color_white, thickness_white, cv2.LINE_AA)
+
+    return out_img
