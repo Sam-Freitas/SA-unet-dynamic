@@ -2,7 +2,7 @@
 
 This is an implementation of the Unet CNN with 3 major tweaks
 
-1 - the model dynamically adjusts the size of the network for the specific size of the images
+1 - the model dynamically adjusts the depth of the network for the specific size of the images
 
 2 - during the final convolutional step-down there is a spatial attentuation block 
 
