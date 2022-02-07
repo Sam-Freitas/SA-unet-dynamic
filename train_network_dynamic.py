@@ -27,9 +27,9 @@ mask_path = os.path.join(dataset_path,"masks")
 dataset = pd.read_csv('dataset.csv')
 
 total = len(dataset) #set variables
-test_split = 10/total
+test_split = 100/total
 channels = 3
-batch_size = 16
+batch_size = 256
 
 img_size = load_first_image_get_size(image_path,dataset,force_img_size=64)
 num_layers_of_unet, img_size = get_num_layers_unet(img_size)
@@ -37,7 +37,7 @@ height = width = img_size
 
 #######Training
 train, test = train_test_split(dataset, test_size = test_split, random_state = 50) #randomly split up the test and training datasets
-X_train, y_train = data_generator(train, image_path, mask_path, height, width, channels, create_more_data=None, data_multiplication = 2, normalize = True) #set up training data
+X_train, y_train = data_generator(train, image_path, mask_path, height, width, channels, create_more_data=True, data_multiplication = 3, normalize = True) #set up training data
 # y_train = y_train / 255 #thresh y_training set
 # # y_train_cat = tf.keras.utils.to_categorical(y_train)
 # X_train = X_train / 255
@@ -59,10 +59,10 @@ starting_kernal_size = 4
 model = dynamic_unet_cnn(height,width,channels,
         num_layers = num_layers_of_unet, starting_filter_size = starting_kernal_size, use_dropout = True, num_classes=1)
 
-optimizer_adam = tf.keras.optimizers.Adam(learning_rate=0.1)
+optimizer_adam = tf.keras.optimizers.Adam(learning_rate=0.001)
 AUC_ROC = tf.keras.metrics.AUC(curve='ROC',name='AUC_ROC')
 AUC_PR = tf.keras.metrics.AUC(curve='PR',name='AUC_PR')
-model.compile(optimizer=optimizer_adam, loss='BinaryCrossentropy', metrics=[AUC_PR], run_eagerly = True)
+model.compile(optimizer=optimizer_adam, loss='BinaryCrossentropy', metrics=[AUC_PR,AUC_ROC], run_eagerly = True)
 # model.summary() #display model summary, Better to just view the model.png
 
 try:
@@ -80,7 +80,7 @@ checkpoint = ModelCheckpoint(filepath = checkpoint_path,monitor="val_loss",mode=
     save_best_only = True,verbose=1,save_weights_only=True) #use checkpoint instead of sequential() module
 earlystop = EarlyStopping(monitor = 'val_loss', min_delta=0.00001,
     patience = 100, verbose = 1,restore_best_weights = True) #stop at best epoch
-reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.5,min_delta=0
+reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.5,min_delta=0,
     patience=25, min_lr=0.0001, verbose = 1)
 
 on_e_end = test_on_improved_val_loss()
