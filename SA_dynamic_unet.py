@@ -189,6 +189,7 @@ def plot_figures(image,pred_mask,num, orig_mask = None,ext = '', epoch = None, s
         plt.imshow(pred_mask.squeeze(),cmap='gray')
         plt.title('Predicted Mask')
     else:
+        plt.figure(num,figsize=(12,12))
         plt.figure(num)
         plt.subplot(121)
         plt.imshow(image)
@@ -205,7 +206,7 @@ def plot_figures(image,pred_mask,num, orig_mask = None,ext = '', epoch = None, s
     if sup_title is not None:
         plt.suptitle(sup_title)
 
-    plt.savefig(output_name)
+    plt.savefig(output_name, dpi = 96*2)
 
 def plot_acc_loss(results): #plot accuracy and loss
     plt.plot(results.history['accuracy'])
@@ -222,8 +223,11 @@ def plot_acc_loss(results): #plot accuracy and loss
     plt.xlabel('epoch')
     plt.legend(['train', 'validation'], loc='upper left')
 
-def data_generator(dataset, image_path, mask_path, height, width, channels, create_more_data = None, data_multiplication = 2, normalize = False,shuffle_data = False): #function for generating data
-    print('Loading in training data')
+def data_generator(dataset, image_path, mask_path, height, width, channels, create_more_data = None, data_multiplication = 2, normalize = False,shuffle_data = False,disable_bar=False): #function for generating data
+    
+    if disable_bar is False:
+        print('Loading in training data')
+
     X_train = np.zeros((len(dataset),height,width,channels), dtype = np.uint8) #initialize training sets (and testing sets)
     y_train = np.zeros((len(dataset),height,width,1), dtype = np.uint8)
 
@@ -232,7 +236,7 @@ def data_generator(dataset, image_path, mask_path, height, width, channels, crea
 
     sys.stdout.flush() #write everything to buffer ontime 
 
-    for i in tqdm(range(len(dataset)),total=len(dataset)): #iterate through datatset and build X_train,y_train
+    for i in tqdm(range(len(dataset)),total=len(dataset),disable=disable_bar): #iterate through datatset and build X_train,y_train
 
         new_image_path = os.path.join(image_path,dataset.iloc[i][0])
         new_mask_path = os.path.join(mask_path,dataset.iloc[i][1])
@@ -265,16 +269,18 @@ def data_generator(dataset, image_path, mask_path, height, width, channels, crea
         for i in range(data_multiplication - 1):
 
             transform = A.Compose([
-                A.augmentations.transforms.HorizontalFlip(p=0.2),
-                A.augmentations.transforms.HorizontalFlip(p=0.2),
-                A.augmentations.transforms.RandomBrightnessContrast(p=0.2),
+                A.augmentations.transforms.HorizontalFlip(p=0.5),
+                A.augmentations.transforms.HorizontalFlip(p=0.5),
+                A.augmentations.transforms.RandomBrightnessContrast(p=0.75),
                 A.augmentations.transforms.ChannelShuffle(p=0.5),
-                A.augmentations.transforms.GaussNoise(p=0.3),
-                # A.augmentations.transforms.RandomGridShuffle(p=0.5)
+                A.augmentations.transforms.GaussNoise(p=0.33),
+                A.augmentations.transforms.RandomGridShuffle(p=0.5)
                 ])
 
-            print('Augmenting dataset for additional data')
-            for j in tqdm(range(len(dataset)),total=len(dataset)):
+            if disable_bar is False:
+                print('Augmenting dataset for additional data')
+
+            for j in tqdm(range(len(dataset)),total=len(dataset),disable=disable_bar):
 
                 transformed = transform(image=X_train[j].astype(np.uint8), mask=y_train[j].astype(np.uint8))
                 X_train_noise[j] = transformed['image']
@@ -294,8 +300,9 @@ def data_generator(dataset, image_path, mask_path, height, width, channels, crea
                 y_train = y_train[shuffle_idx]
 
     if normalize:
-        print('Normalizing input data to 3*std per rgb')
-        for count in tqdm(range(len(X_train)),total=len(X_train)):
+        if disable_bar is False:
+            print('Normalizing input data to 3*std per rgb')
+        for count in tqdm(range(len(X_train)),total=len(X_train),disable=disable_bar):
             X_train[count] = normalize_each_RGB_subset(X_train[count])
             y_train[count] = y_train[count] / 255
 
@@ -336,7 +343,7 @@ def get_num_layers_unet(img_size):
 
     return num_layers, new_img_size
 
-def data_generator_for_testing(image_path, height = None, width = None,channels = None, num_to_load = None, recursive = False, spcific_file_ext = 'png',normalize = False): #function for generating data
+def data_generator_for_testing(image_path, height = None, width = None,channels = None, num_to_load = None, recursive = False, spcific_file_ext = 'png',normalize = False,disable_bar=False): #function for generating data
 
     if recursive:
         dataset = natsorted(glob.glob(os.path.join(image_path,'**/*.' + spcific_file_ext),recursive = True))
@@ -370,9 +377,10 @@ def data_generator_for_testing(image_path, height = None, width = None,channels 
     images = [] #initialize training sets (and testing sets)
 
     sys.stdout.flush() #write everything to buffer ontime 
+    if disable_bar is False:
+        print('Loading in data')
 
-    print('Loading in data')
-    for i in tqdm(range(len(dataset)),total=len(dataset)):
+    for i in tqdm(range(len(dataset)),total=len(dataset),disable=disable_bar):
 
         this_img_path = dataset[i]
         
@@ -392,9 +400,9 @@ def data_generator_for_testing(image_path, height = None, width = None,channels 
 class test_on_improved_val_loss(tf.keras.callbacks.Callback):
     def on_epoch_end(self, epoch, logs=None):
 
-        curr_val_loss = logs['val_loss']
+        curr_val_loss = logs['val_AUC_PR']
         try:
-            val_loss_hist = self.model.history.history['val_loss']
+            val_loss_hist = self.model.history.history['val_AUC_PR']
         except:
             val_loss_hist = curr_val_loss + 1
 
@@ -405,7 +413,7 @@ class test_on_improved_val_loss(tf.keras.callbacks.Callback):
                 shutil.rmtree(os.path.join(os.getcwd(), 'output_images_testing_during'))
                 os.mkdir(os.path.join(os.getcwd(), 'output_images_testing_during'))
 
-        if curr_val_loss < np.min(val_loss_hist):
+        if curr_val_loss >= np.max(val_loss_hist) or epoch == 0:
 
             test_path = os.path.join(os.getcwd(), 'testing')
 
@@ -415,7 +423,7 @@ class test_on_improved_val_loss(tf.keras.callbacks.Callback):
                 test_height = model_shape[0]
                 test_width = model_shape[1]
                 test_depth = model_shape[2]
-                test_imgs = data_generator_for_testing(test_path, height=test_height,width=test_width,channels=test_depth,normalize=True)
+                test_imgs = data_generator_for_testing(test_path, height=test_height,width=test_width,channels=test_depth,normalize=True,disable_bar=True)
 
                 for count, img in enumerate(test_imgs):
 
@@ -455,6 +463,33 @@ def bwareafilt(mask, n=1, area_range=(0, np.inf)):
     kept_mask = np.isin(labels, keep_idx)
     return kept_mask, kept_areas
 
+def bwareaopen(img, min_size, connectivity=8):
+    """Remove small objects from binary image (approximation of 
+    bwareaopen in Matlab for 2D images).
+
+    Args:
+        img: a binary image (dtype=uint8) to remove small objects from
+        min_size: minimum size (in pixels) for an object to remain in the image
+        connectivity: Pixel connectivity; either 4 (connected via edges) or 8 (connected via edges and corners).
+
+    Returns:
+        the binary image with small objects removed
+    """
+
+    # Find all connected components (called here "labels")
+    num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(
+        img, connectivity=connectivity)
+    
+    # check size of all connected components (area in pixels)
+    for i in range(num_labels):
+        label_size = stats[i, cv2.CC_STAT_AREA]
+        
+        # remove connected components smaller than min_size
+        if label_size < min_size:
+            img[labels == i] = 0
+            
+    return img
+
 def normalize_each_RGB_subset(img):
 
     img_shape = img.shape
@@ -478,7 +513,7 @@ def normalize_each_RGB_subset(img):
             else:
                 norm_value = (mean_val + 3*std_val)
 
-            norm_slice = img[:,:,i] / norm_value
+            norm_slice = this_slice / norm_value
             norm_slice = np.clip(norm_slice,0,1)
 
             output[:,:,i] = norm_slice
