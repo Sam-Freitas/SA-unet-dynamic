@@ -1,6 +1,6 @@
 import enum
 from tensorflow.keras.models import Model 
-from tensorflow.keras.layers import Input, Dropout, Lambda, Conv2D, Conv2DTranspose, MaxPooling2D, concatenate, BatchNormalization, Activation
+from tensorflow.keras.layers import Input, Dropout, Lambda, Conv2D, Conv2DTranspose, MaxPooling2D, concatenate, BatchNormalization, Activation, Add
 from tensorflow.keras import backend as K
 from tensorflow.python.keras.engine import training
 from utils.DropBlock import DropBlock2D
@@ -8,6 +8,8 @@ from skimage import measure
 from tqdm import tqdm
 from natsort import natsorted
 import matplotlib.pyplot as plt
+from skimage.filters.rank import entropy 
+from skimage.morphology import disk
 import albumentations as A
 import tensorflow as tf
 import numpy as np
@@ -271,6 +273,7 @@ def data_generator(dataset, image_path, mask_path, height, width, channels, crea
             transform = A.Compose([
                 A.augmentations.transforms.HorizontalFlip(p=0.5),
                 A.augmentations.transforms.HorizontalFlip(p=0.5),
+                A.GridDropout(p=0.5),
                 A.augmentations.transforms.RandomBrightnessContrast(p=0.75),
                 A.augmentations.transforms.ChannelShuffle(p=0.5),
                 A.augmentations.transforms.GaussNoise(p=0.33),
@@ -532,6 +535,11 @@ def normalize_each_RGB_subset(img):
         norm_slice = np.clip(norm_slice,0,1)
 
         output = norm_slice
+
+    # out2 = output.copy()
+    # for i in range(3):
+    #     out2[:,:,i] = entropy(output[:,:,i],disk(3))
+    #     out2[:,:,i] = out2[:,:,i]/np.max(out2[:,:,i])
 
     return output
 

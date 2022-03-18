@@ -38,7 +38,7 @@ height = width = img_size
 
 #######Training
 train, test = train_test_split(dataset, test_size = test_split, random_state = 50) #randomly split up the test and training datasets
-X_train, y_train = data_generator(train, image_path, mask_path, height, width, channels, create_more_data=True, data_multiplication = 3, normalize = True) #set up training data
+X_train, y_train = data_generator(train, image_path, mask_path, height, width, channels, create_more_data=True, data_multiplication = 2, normalize = True) #set up training data
 # y_train = y_train / 255 #thresh y_training set
 # # y_train_cat = tf.keras.utils.to_categorical(y_train)
 # X_train = X_train / 255
@@ -57,7 +57,7 @@ y_train = y_train[shuffled_idx]
 
 output = pd.DataFrame()
 
-starting_filter_size = 64
+starting_filter_size = 4
 
 model = dynamic_unet_cnn(height,width,channels,
         num_layers = num_layers_of_unet, starting_filter_size = starting_filter_size, use_dropout = True, num_classes=1)
