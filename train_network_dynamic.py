@@ -30,7 +30,8 @@ dataset = pd.read_csv('dataset.csv')
 total = len(dataset) #set variables
 test_split = 100/total
 channels = 3
-batch_size = 16
+batch_size = 64
+starting_filter_size = 4
 
 img_size = load_first_image_get_size(image_path,dataset,force_img_size=128)
 num_layers_of_unet, img_size = get_num_layers_unet(img_size)
@@ -38,7 +39,7 @@ height = width = img_size
 
 #######Training
 train, test = train_test_split(dataset, test_size = test_split, random_state = 50) #randomly split up the test and training datasets
-X_train, y_train = data_generator(train, image_path, mask_path, height, width, channels, create_more_data=True, data_multiplication = 2, normalize = True) #set up training data
+X_train, y_train = data_generator(train, image_path, mask_path, height, width, channels, create_more_data=True, data_multiplication = 3, normalize = True) #set up training data
 # y_train = y_train / 255 #thresh y_training set
 # # y_train_cat = tf.keras.utils.to_categorical(y_train)
 # X_train = X_train / 255
@@ -57,15 +58,13 @@ y_train = y_train[shuffled_idx]
 
 output = pd.DataFrame()
 
-starting_filter_size = 4
-
 model = dynamic_unet_cnn(height,width,channels,
         num_layers = num_layers_of_unet, starting_filter_size = starting_filter_size, use_dropout = True, num_classes=1)
 
 def scheduler(epoch,lr):
-    if epoch < 20:
-        lr = 0.001
-    elif epoch > 20 and epoch < 100:
+    if epoch < 150:
+        lr = 0.01
+    elif epoch > 150 and epoch < 500:
         lr = 0.0005
     else:
         lr = 0.0001
@@ -82,11 +81,11 @@ model.compile(optimizer=optimizer_adam, loss=loss, metrics=[AUC_PR], run_eagerly
 checkpoint_path = "model_testing/cp.ckpt" 
 checkpoint_dir = os.path.dirname(checkpoint_path)
 
-epochs = 500
+epochs = 10000
 checkpoint = ModelCheckpoint(filepath = checkpoint_path,monitor="val_AUC_PR",mode="max",
     save_best_only = True,verbose=1,save_weights_only=True) #use checkpoint instead of sequential() module
 earlystop = EarlyStopping(monitor = 'val_AUC_PR', min_delta=0,
-    patience = 400, verbose = 1,restore_best_weights = True) #stop at best epoch
+    patience = 400, verbose = 1,restore_best_weights = True,mode = 'max') #stop at best epoch
 # reduce_lr = ReduceLROnPlateau(monitor='val_AUC_PR', mode = 'max',factor=0.9,min_delta=0.0,
 #     patience=3, min_lr=0.005, cooldown = 5,verbose = 1)
 
@@ -120,7 +119,7 @@ for image,mask in zip(X_test,y_test): #for loop for plotting images
     img = image.reshape((1,height,width,channels))
     pred_mask = new_model.predict(img)
 
-    plot_figures(image,pred_mask[:,:,:,-1]>0.75, count, orig_mask=mask, ext = 'training')
+    plot_figures(image,pred_mask[:,:,:,-1]>0.75, count, orig_mask=mask, ext = 'training', BGR = True)
     plt.close('all')
     count += 1
 

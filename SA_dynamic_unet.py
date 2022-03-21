@@ -31,12 +31,12 @@ def dynamic_unet_cnn(height,width,channels,num_layers = 4,starting_filter_size =
 
             conv = Conv2D(curr_filter_size, (3,3), activation = None, kernel_initializer = 'he_normal', padding = 'same') (s)
             conv = DropBlock2D(keep_prob = dropsize, block_size = blocksize)(conv, training = use_dropout)
-            conv = BatchNormalization()(conv)
+            # conv = BatchNormalization()(conv)
             conv = Activation('relu')(conv)
 
             conv = Conv2D(curr_filter_size, (3,3), activation = None, kernel_initializer = 'he_normal', padding = 'same')(conv)
             conv = DropBlock2D(keep_prob = dropsize, block_size = blocksize)(conv, training = use_dropout)
-            conv = BatchNormalization()(conv)
+            # conv = BatchNormalization()(conv)
             conv = Activation('relu')(conv)
 
             pool = MaxPooling2D((2,2))(conv)
@@ -50,12 +50,12 @@ def dynamic_unet_cnn(height,width,channels,num_layers = 4,starting_filter_size =
 
             conv_list.append(Conv2D(curr_filter_size, (3, 3), activation=None, kernel_initializer='he_normal', padding='same')(pool_list[i-1]))
             conv_list[i] = DropBlock2D(keep_prob = dropsize, block_size = blocksize)(conv_list[i], training = use_dropout)
-            conv_list[i] = BatchNormalization()(conv_list[i])
+            # conv_list[i] = BatchNormalization()(conv_list[i])
             conv_list[i] = Activation('relu')(conv_list[i])
 
             conv_list[i] = Conv2D(curr_filter_size, (3, 3), activation=None, kernel_initializer='he_normal', padding='same') (conv_list[i])
             conv_list[i] = DropBlock2D(keep_prob = dropsize, block_size = blocksize)(conv_list[i], training = use_dropout)
-            conv_list[i] = BatchNormalization()(conv_list[i])
+            # conv_list[i] = BatchNormalization()(conv_list[i])
             conv_list[i] = Activation('relu')(conv_list[i])
             
             pool = MaxPooling2D((2, 2)) (conv_list[i])
@@ -70,7 +70,7 @@ def dynamic_unet_cnn(height,width,channels,num_layers = 4,starting_filter_size =
     
     conv_list.append(Conv2D(curr_filter_size, (3, 3), activation=None, kernel_initializer='he_normal', padding='same') (pool_list[num_layers-1]))
     conv_list[-1] = DropBlock2D(keep_prob = dropsize, block_size = blocksize)(conv_list[-1], training = use_dropout)
-    conv_list[-1] = BatchNormalization()(conv_list[-1])
+    # conv_list[-1] = BatchNormalization()(conv_list[-1])
     conv_list[-1] = Activation('relu')(conv_list[-1])
 
     conv_list[-1] = spatial_attention_block(conv_list[-1])
@@ -78,7 +78,7 @@ def dynamic_unet_cnn(height,width,channels,num_layers = 4,starting_filter_size =
     ##### spatial attention block goes here
     conv_list[-1] = Conv2D(curr_filter_size, (3, 3), activation=None, kernel_initializer='he_normal', padding='same') (conv_list[-1])
     conv_list[-1] = DropBlock2D(keep_prob = dropsize, block_size = blocksize)(conv_list[-1], training = use_dropout)
-    conv_list[-1] = BatchNormalization()(conv_list[-1])
+    # conv_list[-1] = BatchNormalization()(conv_list[-1])
     conv_list[-1] = Activation('relu')(conv_list[-1])
 
     for i in range(num_layers):
@@ -87,16 +87,17 @@ def dynamic_unet_cnn(height,width,channels,num_layers = 4,starting_filter_size =
             # print(curr_filter_size)
 
             u = Conv2DTranspose(curr_filter_size, (2, 2), strides=(2, 2), padding='same') (conv_list[-1])
-            u = concatenate([u, conv_list_reverse[i]])
+            # u = concatenate([u, conv_list_reverse[i]])
+            u = Add()([u, conv_list_reverse[i]])
 
             conv_list.append(Conv2D(curr_filter_size, (3, 3), activation=None, kernel_initializer='he_normal', padding='same') (u))
-            conv_list[-1] = DropBlock2D(keep_prob = dropsize, block_size = blocksize)(conv_list[-1], training = use_dropout)
-            conv_list[-1] = BatchNormalization()(conv_list[-1])
+            # conv_list[-1] = DropBlock2D(keep_prob = dropsize, block_size = blocksize)(conv_list[-1], training = use_dropout)
+            # conv_list[-1] = BatchNormalization()(conv_list[-1])
             conv_list[-1] = Activation('relu')(conv_list[-1])
 
             conv_list[-1] = Conv2D(curr_filter_size, (3, 3), activation=None, kernel_initializer='he_normal', padding='same') (conv_list[-1])
-            conv_list[-1] = DropBlock2D(keep_prob = dropsize, block_size = blocksize)(conv_list[-1], training = use_dropout)
-            conv_list[-1] = BatchNormalization()(conv_list[-1])
+            # conv_list[-1] = DropBlock2D(keep_prob = dropsize, block_size = blocksize)(conv_list[-1], training = use_dropout)
+            # conv_list[-1] = BatchNormalization()(conv_list[-1])
             conv_list[-1] = Activation('relu')(conv_list[-1])
 
             u_list = list([u])
@@ -106,16 +107,17 @@ def dynamic_unet_cnn(height,width,channels,num_layers = 4,starting_filter_size =
             # print(curr_filter_size)
 
             u_list.append(Conv2DTranspose(curr_filter_size, (2, 2), strides=(2, 2), padding='same') (conv_list[-1]))
-            u_list[i] = concatenate([u_list[i], conv_list_reverse[i]],axis=3)
+            # u_list[i] = concatenate([u_list[i], conv_list_reverse[i]],axis=3)
+            u_list[i] = Add()([u_list[i], conv_list_reverse[i]])
 
             conv_list.append(Conv2D(curr_filter_size, (3, 3), activation=None, kernel_initializer='he_normal', padding='same') (u_list[i]))
-            conv_list[-1] = DropBlock2D(keep_prob = dropsize, block_size = blocksize)(conv_list[-1], training = use_dropout)
-            conv_list[-1] = BatchNormalization()(conv_list[-1])
+            # conv_list[-1] = DropBlock2D(keep_prob = dropsize, block_size = blocksize)(conv_list[-1], training = use_dropout)
+            # conv_list[-1] = BatchNormalization()(conv_list[-1])
             conv_list[-1] = Activation('relu')(conv_list[-1])
 
             conv_list[-1] = Conv2D(curr_filter_size, (3, 3), activation=None, kernel_initializer='he_normal', padding='same') (conv_list[-1])
-            conv_list[-1] = DropBlock2D(keep_prob = dropsize, block_size = blocksize)(conv_list[-1], training = use_dropout)
-            conv_list[-1] = BatchNormalization()(conv_list[-1])
+            # conv_list[-1] = DropBlock2D(keep_prob = dropsize, block_size = blocksize)(conv_list[-1], training = use_dropout)
+            # conv_list[-1] = BatchNormalization()(conv_list[-1])
             conv_list[-1] = Activation('relu')(conv_list[-1])
 
         else: 
@@ -123,16 +125,17 @@ def dynamic_unet_cnn(height,width,channels,num_layers = 4,starting_filter_size =
             # print(curr_filter_size)
 
             u_list.append(Conv2DTranspose(curr_filter_size, (2, 2), strides=(2, 2), padding='same') (conv_list[-1]))
-            u_list[i] = concatenate([u_list[i], conv_list_reverse[i]])
+            # u_list[i] = concatenate([u_list[i], conv_list_reverse[i]])
+            u_list[i] = Add()([u_list[i], conv_list_reverse[i]])
 
             conv_list.append(Conv2D(curr_filter_size, (3, 3), activation=None, kernel_initializer='he_normal', padding='same') (u_list[i]))
-            conv_list[-1] = DropBlock2D(keep_prob = dropsize, block_size = blocksize)(conv_list[-1], training = use_dropout)
-            conv_list[-1] = BatchNormalization()(conv_list[-1])
+            # conv_list[-1] = DropBlock2D(keep_prob = dropsize, block_size = blocksize)(conv_list[-1], training = use_dropout)
+            # conv_list[-1] = BatchNormalization()(conv_list[-1])
             conv_list[-1] = Activation('relu')(conv_list[-1])
 
             conv_list[-1] = Conv2D(curr_filter_size, (3, 3), activation=None, kernel_initializer='he_normal', padding='same') (conv_list[-1])
-            conv_list[-1] = DropBlock2D(keep_prob = dropsize, block_size = blocksize)(conv_list[-1], training = use_dropout)
-            conv_list[-1] = BatchNormalization()(conv_list[-1])
+            # conv_list[-1] = DropBlock2D(keep_prob = dropsize, block_size = blocksize)(conv_list[-1], training = use_dropout)
+            # conv_list[-1] = BatchNormalization()(conv_list[-1])
             conv_list[-1] = Activation('relu')(conv_list[-1])
 
     outputs = Conv2D(num_classes, (1, 1), activation=final_activation) (conv_list[-1])
@@ -167,12 +170,15 @@ def dynamic_wnet_cnn(height,width,channels,num_layers = 4,starting_filter_size =
 
     return Wnet_model
 
-def plot_figures(image,pred_mask,num, orig_mask = None,ext = '', epoch = None, sup_title = None): #function for plotting figures
+def plot_figures(image,pred_mask,num, orig_mask = None,ext = '', epoch = None, sup_title = None, BGR = False): #function for plotting figures
 
     if ext != '':
         output_path = os.path.join(os.getcwd(),'output_images' + '_' + ext)
     else:
         output_path = os.path.join(os.getcwd(),'output_images')
+
+    if BGR is True:
+        image = image[:,:, ::-1]
 
     try:
         os.mkdir(output_path)
@@ -443,7 +449,7 @@ class test_on_improved_val_loss(tf.keras.callbacks.Callback):
                         concat_in_imgs = cv2.vconcat([concat_in_imgs,in_img.squeeze()])
                         concat_out_imgs = cv2.vconcat([concat_out_imgs,pred_mask[:,:,:,-1].squeeze()])
 
-                plot_figures(concat_in_imgs,concat_out_imgs, count, ext = 'testing_during', epoch = epoch, sup_title = curr_val_loss)
+                plot_figures(concat_in_imgs,concat_out_imgs, count, ext = 'testing_during', epoch = epoch, sup_title = curr_val_loss, BGR = True)
                 plt.close('all')
 
 def bwareafilt(mask, n=1, area_range=(0, np.inf)):
