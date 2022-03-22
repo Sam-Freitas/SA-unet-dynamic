@@ -13,15 +13,16 @@ dataset_path = os.getcwd()
 image_path = os.path.join(dataset_path, "test")
 # image_path = os.path.join('testing')
 channels = 3
-batch_size = 1
+batch_size = 256
+starting_filter_size = 16
 
 img_size = load_first_image_get_size(image_path,force_img_size=128)
 num_layers_of_unet, img_size = get_num_layers_unet(img_size)
 height = width = img_size
 
-starting_filter_size = 64
+num_layers_of_unet = num_layers_of_unet + 1
 
-checkpoint_path = "model_testing/cp.ckpt" 
+checkpoint_path = "model_checkpoints/cp.ckpt" 
 print('Loading in model from best checkpoint')
 
 new_model = dynamic_unet_cnn(height,width,channels,num_layers = num_layers_of_unet,starting_filter_size=starting_filter_size)
@@ -29,7 +30,7 @@ optimizer_adam = tf.keras.optimizers.Adam(learning_rate=0.1)
 new_model.compile(optimizer=optimizer_adam, loss='BinaryCrossentropy', metrics=['accuracy','MeanAbsoluteError'], run_eagerly = True)
 new_model.load_weights(checkpoint_path)
 
-# new_model.save('compiled_model/model_64_final')
+new_model.save('compiled_model/model_128img_16filt_final')
 # del new_model
 # new_model = tf.keras.models.load_model('compiled_model/model_64_final')
 
@@ -43,13 +44,13 @@ for image in images: #for loop for plotting images
     img = img.astype(np.float64)
     pred_mask = new_model.predict(img)
 
-    bwfilt = bwareafilt((pred_mask[:,:,:,-1]>0.5)*1,n=5)
+    # bwfilt = bwareafilt((pred_mask[:,:,:,-1]>0.5)*1,n=5)
 
-    out_img = bwfilt[0]
+    # out_img = bwfilt[0]
 
     # out_img = bwareaopen((pred_mask[:,:,:,-1]>0.3).squeeze().astype(np.uint8), 20, connectivity=4)
 
-    # out_img = pred_mask[:,:,:,-1]>0.1
+    out_img = pred_mask[:,:,:,-1]>0.5
 
     plot_figures(image,out_img, count)
     count += 1

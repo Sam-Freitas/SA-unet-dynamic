@@ -293,6 +293,14 @@ def data_generator(dataset, image_path, mask_path, height, width, channels, crea
 
                 transformed = transform(image=X_train[j].astype(np.uint8), mask=y_train[j].astype(np.uint8))
                 X_train_noise[j] = transformed['image']
+                if i == 3:
+                    if channels > 1:
+                        for k in range(3):
+                            x_min = np.mean(X_train_noise[j][:,:,k])
+                            x_max = x_min + 3
+                            X_train_noise[j][:,:,k] = np.clip(X_train_noise[j][:,:,k],x_min,x_max)
+                    else:
+                        X_train_noise[j] = np.clip(X_train_noise[j],x_min,x_max)
                 y_train_noise[j] = transformed['mask']
 
             X_train_noise = X_train_noise.astype(np.float64)
@@ -422,7 +430,7 @@ class test_on_improved_val_loss(tf.keras.callbacks.Callback):
                 shutil.rmtree(os.path.join(os.getcwd(), 'output_images_testing_during'))
                 os.mkdir(os.path.join(os.getcwd(), 'output_images_testing_during'))
 
-        if curr_val_loss >= np.max(val_loss_hist) or epoch == 0:
+        if curr_val_loss >= np.max(val_loss_hist) or epoch == 0 or (epoch % 10) == 0:
 
             test_path = os.path.join(os.getcwd(), 'testing')
 
@@ -451,6 +459,9 @@ class test_on_improved_val_loss(tf.keras.callbacks.Callback):
 
                 plot_figures(concat_in_imgs,concat_out_imgs, count, ext = 'testing_during', epoch = epoch, sup_title = curr_val_loss, BGR = True)
                 plt.close('all')
+
+            else:
+                print('Earlystop:' + str(np.argmax(val_loss_hist) - epoch))
 
 def bwareafilt(mask, n=1, area_range=(0, np.inf)):
 
