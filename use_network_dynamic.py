@@ -2,6 +2,7 @@ import numpy as np #import needed libraries and commands
 import pandas as pd 
 import matplotlib.pyplot as plt
 import os
+import cv2
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
 import tensorflow as tf
 import shutil
@@ -30,29 +31,28 @@ optimizer_adam = tf.keras.optimizers.Adam(learning_rate=0.1)
 new_model.compile(optimizer=optimizer_adam, loss='BinaryCrossentropy', metrics=['accuracy','MeanAbsoluteError'], run_eagerly = True)
 new_model.load_weights(checkpoint_path)
 
-new_model.save('compiled_model/model_128img_16filt_final')
+# new_model.save('compiled_model/model_128img_16filt_final')
 # del new_model
 # new_model = tf.keras.models.load_model('compiled_model/model_64_final')
 
-images = data_generator_for_testing(image_path,height,width,channels,recursive = True,spcific_file_ext = 'jpg', normalize = True) #get test set
+images_resized, images = data_generator_for_testing(image_path,height,width,channels,recursive = True,spcific_file_ext = 'jpg', normalize = True) #get test set
 # images = images / 255 #thresh y_test
 
-count = 1 #counter for figures in for loops
-for image in images: #for loop for plotting images
+for count, image in enumerate(images_resized): #for loop for plotting images
     
+    # resize image
     img = image.reshape((1,height,width,channels))
+    # convert to proper data type
     img = img.astype(np.float64)
+    # predict
     pred_mask = new_model.predict(img)
-
-    # bwfilt = bwareafilt((pred_mask[:,:,:,-1]>0.5)*1,n=5)
-
-    # out_img = bwfilt[0]
-
-    # out_img = bwareaopen((pred_mask[:,:,:,-1]>0.3).squeeze().astype(np.uint8), 20, connectivity=4)
-
-    out_img = pred_mask[:,:,:,-1]>0.5
-
-    plot_figures(image,out_img, count)
+    # islate mask
+    out_img = pred_mask[:,:,:,-1]
+    # reshape mask to inital image size
+    og_image_size = images[count].shape[:2]
+    out_img_large = cv2.resize(out_img.squeeze(),og_image_size)
+    # export
+    plot_figures(images[count],out_img_large, count, BGR = True)
     count += 1
 
     plt.close('all')

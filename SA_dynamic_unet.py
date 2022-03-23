@@ -392,6 +392,7 @@ def data_generator_for_testing(image_path, height = None, width = None,channels 
             channels = 1
 
     images = [] #initialize training sets (and testing sets)
+    inital_images = []
 
     sys.stdout.flush() #write everything to buffer ontime 
     if disable_bar is False:
@@ -411,8 +412,9 @@ def data_generator_for_testing(image_path, height = None, width = None,channels 
 
         img_resized = cv2.resize(image,(height,width))
         images.append(np.atleast_3d(img_resized))
+        inital_images.append(image)
 
-    return images
+    return images, inital_images
 
 class test_on_improved_val_loss(tf.keras.callbacks.Callback):
     def on_epoch_end(self, epoch, logs=None):
