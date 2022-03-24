@@ -65,8 +65,6 @@ y_train = y_train[shuffled_idx]
 output = pd.DataFrame()
 
 def scheduler(epoch,lr):
-    lr = 0.01
-
     if epoch < 100:
         lr = 0.01
     else:
@@ -86,7 +84,7 @@ checkpoint_dir = os.path.dirname(checkpoint_path)
 checkpoint = ModelCheckpoint(filepath = checkpoint_path,monitor="val_AUC_PR",mode="max",
     save_best_only = True,verbose=1,save_weights_only=True) #use checkpoint instead of sequential() module
 earlystop = EarlyStopping(monitor = 'val_AUC_PR', min_delta=0,
-    patience = 250, verbose = 1,restore_best_weights = False,mode = 'max') #stop at best epoch
+    patience = 500, verbose = 1,restore_best_weights = False,mode = 'max') #stop at best epoch
 # reduce_lr = ReduceLROnPlateau(monitor='val_AUC_PR', mode = 'max',factor=0.9,min_delta=0.0,
 #     patience=3, min_lr=0.005, cooldown = 5,verbose = 1)
 

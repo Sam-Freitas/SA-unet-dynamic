@@ -11,7 +11,7 @@ from SA_dynamic_unet import dynamic_unet_cnn, plot_figures, data_generator_for_t
 from SA_dynamic_unet import bwareafilt, bwareaopen
 
 dataset_path = os.getcwd()
-image_path = os.path.join(dataset_path, "test")
+image_path = os.path.join(dataset_path, "images")
 # image_path = os.path.join('testing')
 channels = 3
 batch_size = 256
@@ -31,7 +31,7 @@ optimizer_adam = tf.keras.optimizers.Adam(learning_rate=0.1)
 new_model.compile(optimizer=optimizer_adam, loss='BinaryCrossentropy', metrics=['accuracy','MeanAbsoluteError'], run_eagerly = True)
 new_model.load_weights(checkpoint_path)
 
-# new_model.save('compiled_model/model_128img_16filt_final')
+# new_model.save('compiled_model/model_128img_16filt_final2')
 # del new_model
 # new_model = tf.keras.models.load_model('compiled_model/model_64_final')
 
@@ -51,6 +51,8 @@ for count, image in enumerate(images_resized): #for loop for plotting images
     # reshape mask to inital image size
     og_image_size = images[count].shape[:2]
     out_img_large = cv2.resize(out_img.squeeze(),og_image_size)
+    # remove small blobs and binarize 
+    out_img_large = bwareaopen(((out_img_large>0.5)*1).astype(np.uint8), 1000, connectivity=8)
     # export
     plot_figures(images[count],out_img_large, count, BGR = True)
     count += 1

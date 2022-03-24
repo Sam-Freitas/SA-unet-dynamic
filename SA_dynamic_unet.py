@@ -8,6 +8,7 @@ from skimage import measure
 from tqdm import tqdm
 from natsort import natsorted
 import matplotlib.pyplot as plt
+import matplotlib
 from skimage.filters.rank import entropy 
 from skimage.morphology import disk
 import albumentations as A
@@ -199,12 +200,18 @@ def plot_figures(image,pred_mask,num, orig_mask = None,ext = '', epoch = None, s
     else:
         plt.figure(num,figsize=(12,12))
         plt.figure(num)
-        plt.subplot(121)
+        plt.subplot(131)
         plt.imshow(image)
         plt.title("Image")
-        plt.subplot(122)
+        plt.subplot(132)
         plt.imshow(pred_mask.squeeze(),cmap='gray')
         plt.title('Predicted Mask')
+        plt.subplot(133)
+        mask3d = np.concatenate((np.atleast_3d(pred_mask),np.atleast_3d(pred_mask),np.atleast_3d(pred_mask)),axis = -1).astype(np.float64)
+        masked_img = image*mask3d
+        plt.imshow(masked_img/np.max(masked_img))
+        plt.title("masked imaged norm")
+
 
     if epoch is not None:
         output_name = os.path.join(output_path,str(epoch) + '_' + str(num) + '.png')
@@ -442,7 +449,7 @@ class test_on_improved_val_loss(tf.keras.callbacks.Callback):
                 test_height = model_shape[0]
                 test_width = model_shape[1]
                 test_depth = model_shape[2]
-                test_imgs = data_generator_for_testing(test_path, height=test_height,width=test_width,channels=test_depth,normalize=True,disable_bar=True)
+                test_imgs, test_imgs_intial = data_generator_for_testing(test_path, height=test_height,width=test_width,channels=test_depth,normalize=True,disable_bar=True)
 
                 for count, img in enumerate(test_imgs):
 
